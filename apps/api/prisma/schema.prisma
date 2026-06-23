@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id          String       @id @default(uuid())
+  name        String
+  city        String
+  currency    String       @default("EUR")
+  menuItems   MenuItem[]
+  experiments Experiment[]
+  conversations Conversation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model MenuItem {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  category     String
+  description  String
+  price        Decimal    @db.Decimal(10, 2)
+  conversion   Float
+  orders       Int
+  revenue      Decimal    @db.Decimal(12, 2)
+  imageUrl     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([restaurantId, conversion])
+}
+
+model Experiment {
+  id              String           @id @default(uuid())
+  restaurantId    String
+  restaurant      Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  title           String
+  hypothesis      String
+  status          ExperimentStatus @default(DRAFT)
+  durationDays    Int
+  primaryMetric   String
+  guardrailMetric String
+  expectedImpact  Float
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([restaurantId, status])
+}
+
+model Conversation {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  question     String
+  responseJson Json
+  provider     String
+  model        String
+  promptHash   String
+  latencyMs    Int
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, createdAt])
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
